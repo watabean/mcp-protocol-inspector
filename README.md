@@ -31,6 +31,24 @@ npm run inspect -- --server "npx @modelcontextprotocol/server-filesystem /tmp"
 
 初回は `npx` がパッケージをダウンロードするため少し時間がかかります。
 
+### 例: 起動済みのHTTPサーバーに接続 (SSE)
+
+Figma Desktop など、ローカルで動いている MCP サーバーへ接続できます。
+
+```bash
+# Figma Desktop MCP (デフォルトポート 3845)
+npm run inspect -- --url http://localhost:3845
+
+# その他の SSE サーバー
+npm run inspect -- --url http://localhost:3000
+```
+
+### 例: Streamable HTTP サーバーに接続 (新仕様)
+
+```bash
+npm run inspect -- --url http://localhost:3000 --streamable
+```
+
 ## コマンド
 
 | コマンド | 説明 |

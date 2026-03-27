@@ -1,4 +1,4 @@
-import { StdioTransport } from "../transport/stdio.js";
+import { McpTransport } from "../transport/types.js";
 
 export interface ServerInfo {
   name: string;
@@ -25,7 +25,7 @@ export interface InitializeResult {
  * 2. initialize レスポンス受信
  * 3. notifications/initialized 通知送信
  */
-export function initialize(transport: StdioTransport): Promise<InitializeResult> {
+export function initialize(transport: McpTransport): Promise<InitializeResult> {
   return new Promise((resolve, reject) => {
     const requestId = 1;
 

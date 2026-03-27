@@ -1,6 +1,6 @@
 import * as readline from "node:readline";
 import chalk from "chalk";
-import { StdioTransport } from "./transport/stdio.js";
+import { McpTransport } from "./transport/types.js";
 import { initialize, type InitializeResult } from "./protocol/initialize.js";
 import { listTools, callTool, sendRaw, type Tool } from "./protocol/tools.js";
 
@@ -14,7 +14,7 @@ ${chalk.bold("コマンド一覧:")}
 `;
 
 export async function runCli(
-  transport: StdioTransport,
+  transport: McpTransport,
   serverInfo: InitializeResult
 ): Promise<void> {
   console.log("\n" + chalk.bold.green("=== MCP Inspector ==="));
@@ -63,7 +63,7 @@ export async function runCli(
   });
 }
 
-async function handleCommand(input: string, transport: StdioTransport): Promise<void> {
+async function handleCommand(input: string, transport: McpTransport): Promise<void> {
   if (input === "help") {
     console.log(HELP_TEXT);
     return;
