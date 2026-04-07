@@ -8,6 +8,7 @@
     "inspect": "node --import tsx/esm src/index.ts"
   },
   "dependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4",
     "chalk": "^5.3.0"
   },
   "devDependencies": {

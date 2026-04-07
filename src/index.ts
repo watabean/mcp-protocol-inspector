@@ -4,6 +4,7 @@ import { SseTransport, StreamableHttpTransport } from "./transport/http.js";
 import { McpTransport } from "./transport/types.js";
 import { initialize } from "./protocol/initialize.js";
 import { runCli } from "./cli.js";
+import { splitCommand } from "./util/shellwords.js";
 
 interface Args {
   mode: "stdio" | "sse" | "streamable";
@@ -27,7 +28,7 @@ function parseArgs(): Args {
   const serverIdx = argv.indexOf("--server");
   if (serverIdx !== -1 && argv[serverIdx + 1]) {
     const serverCmd = argv[serverIdx + 1];
-    const parts = serverCmd.split(" ");
+    const parts = splitCommand(serverCmd);
     return { mode: "stdio", command: parts[0], cmdArgs: parts.slice(1) };
   }
 
