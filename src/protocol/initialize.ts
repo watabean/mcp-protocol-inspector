@@ -40,7 +40,8 @@ export function initialize(transport: McpTransport): Promise<InitializeResult> {
 
         const result = message.result as InitializeResult;
 
-        // サーバーが initialize に応答したら initialized 通知を送る (必須)
+        // 初期化完了を示すため initialized 通知を送る。
+        // 仕様上、通常操作に入る前に必要。
         transport.send({
           jsonrpc: "2.0",
           method: "notifications/initialized",
@@ -57,13 +58,13 @@ export function initialize(transport: McpTransport): Promise<InitializeResult> {
       id: requestId,
       method: "initialize",
       params: {
-        protocolVersion: "2024-11-05",
+        protocolVersion: "2025-03-26",
         clientInfo: {
           name: "mcp-inspector",
           version: "0.1.0",
         },
         capabilities: {
-          // クライアントがサポートする capabilities を宣言
+          // roots を宣言すると、サーバーから roots/list を求められることがある。
           roots: { listChanged: false },
           sampling: {},
         },

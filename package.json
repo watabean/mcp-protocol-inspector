@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "inspect": "node --import tsx/esm src/index.ts"
+    "inspect": "node --import tsx/esm src/index.ts",
+    "benchmark": "node --import tsx/esm src/benchmark.ts"
   },
   "dependencies": {
     "@anthropic-ai/tokenizer": "^0.0.4",

@@ -49,11 +49,15 @@ npm run inspect -- --url http://localhost:3000
 npm run inspect -- --url http://localhost:3000 --streamable
 ```
 
+現在の Streamable HTTP 実装は、`POST /mcp` の JSON / SSE レスポンスと `Mcp-Session-Id` を扱います。
+仕様上オプションの `GET /mcp` によるサーバー起点 SSE ストリームは未実装です。
+
 ## コマンド
 
 | コマンド | 説明 |
 |---------|------|
 | `list tools` | ツール一覧を取得 |
+| `count tokens` | Claude 向け tools 定義 JSON の概算トークン数を表示 |
 | `call <tool> [json]` | ツールを呼び出す |
 | `raw <json>` | 生のJSON-RPCを直接送信 |
 | `help` | コマンド一覧を表示 |
@@ -76,9 +80,14 @@ mcp> raw {"jsonrpc":"2.0","id":100,"method":"resources/list"}
 
 ## 注目ポイント
 
-起動直後、サーバーから `roots/list` リクエストが飛んでくることがある。
+`roots` capability を宣言すると、起動直後にサーバーから `roots/list` リクエストが飛んでくることがある。
 MCPはクライアント→サーバーだけでなく、サーバー→クライアントへのリクエストも発生する双方向プロトコル。
 
 ```
 [RECV ←] {"method":"roots/list","jsonrpc":"2.0","id":0}
 ```
+
+## 注意事項
+
+- `count tokens` は Claude に渡す `tools` 定義 JSON の概算です。Anthropic 側の固定 tool-use system prompt 分は含みません。
+- `--server` はクォート付き引数を扱えるようにしてありますが、複雑なシェル展開やパイプはサポートしません。

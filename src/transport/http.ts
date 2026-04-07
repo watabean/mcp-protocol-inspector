@@ -3,6 +3,7 @@ import chalk from "chalk";
 
 export interface TransportOptions {
   verbose: boolean;
+  silent?: boolean;
 }
 
 /**
@@ -22,17 +23,19 @@ export class SseTransport extends EventEmitter {
   private postUrl: string | null = null;
   private abortController: AbortController | null = null;
   private verbose: boolean;
+  private silent: boolean;
   private baseUrl: string = "";
 
   constructor(options: TransportOptions = { verbose: true }) {
     super();
     this.verbose = options.verbose;
+    this.silent = options.silent ?? false;
   }
 
   async connect(baseUrl: string): Promise<void> {
     this.baseUrl = baseUrl;
     const sseUrl = new URL("/sse", baseUrl).toString();
-    console.log(chalk.gray(`[CONNECT] SSE ${sseUrl}`));
+    if (!this.silent) console.log(chalk.gray(`[CONNECT] SSE ${sseUrl}`));
 
     this.abortController = new AbortController();
 
@@ -71,7 +74,7 @@ export class SseTransport extends EventEmitter {
       while (true) {
         const { done, value } = await reader.read();
         if (done) {
-          console.log(chalk.yellow("[DISCONNECT] SSE ストリーム終了"));
+          if (!this.silent) console.log(chalk.yellow("[DISCONNECT] SSE ストリーム終了"));
           this.emit("disconnect");
           break;
         }
@@ -116,7 +119,7 @@ export class SseTransport extends EventEmitter {
         resolved.port = base.port;
       }
       this.postUrl = resolved.toString();
-      console.log(chalk.gray(`[SSE] endpoint: ${this.postUrl}`));
+      if (!this.silent) console.log(chalk.gray(`[SSE] endpoint: ${this.postUrl}`));
       this.emit("_endpoint");
       return;
     }
@@ -151,6 +154,7 @@ export class SseTransport extends EventEmitter {
   }
 
   private logMessage(direction: "→" | "←", message: unknown): void {
+    if (this.silent) return;
     const json = JSON.stringify(message, null, this.verbose ? 2 : undefined);
     if (direction === "→") {
       console.log(chalk.cyan(`\n[SEND ${direction}] `) + chalk.white(json));
@@ -186,18 +190,20 @@ export class StreamableHttpTransport extends EventEmitter {
   private baseUrl: string;
   private sessionId: string | null = null;
   private verbose: boolean;
+  private silent: boolean;
 
   constructor(baseUrl: string, options: TransportOptions = { verbose: true }) {
     super();
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.verbose = options.verbose;
+    this.silent = options.silent ?? false;
   }
 
   async connect(): Promise<void> {
     const url = `${this.baseUrl}/mcp`;
-    console.log(chalk.gray(`[CONNECT] Streamable HTTP ${url}`));
-    // Streamable HTTP は接続確立のための特別なリクエストは不要
-    // 最初のメッセージ送信時にセッションが始まる
+    if (!this.silent) console.log(chalk.gray(`[CONNECT] Streamable HTTP ${url}`));
+    // Streamable HTTP は単一 endpoint を使う。
+    // セッションは initialize のレスポンスヘッダーで始まることがある。
   }
 
   async send(message: unknown): Promise<void> {
@@ -272,6 +278,7 @@ export class StreamableHttpTransport extends EventEmitter {
   }
 
   private logMessage(direction: "→" | "←", message: unknown): void {
+    if (this.silent) return;
     const json = JSON.stringify(message, null, this.verbose ? 2 : undefined);
     if (direction === "→") {
       console.log(chalk.cyan(`\n[SEND ${direction}] `) + chalk.white(json));

@@ -4,20 +4,23 @@ import chalk from "chalk";
 
 export interface TransportOptions {
   verbose: boolean;
+  silent?: boolean; // true にするとすべてのログを抑制（benchmark用）
 }
 
 export class StdioTransport extends EventEmitter {
   private process: ChildProcessWithoutNullStreams | null = null;
   private lineBuffer = "";
   private verbose: boolean;
+  private silent: boolean;
 
   constructor(options: TransportOptions = { verbose: true }) {
     super();
     this.verbose = options.verbose;
+    this.silent = options.silent ?? false;
   }
 
   connect(command: string, args: string[]): void {
-    console.log(chalk.gray(`[CONNECT] ${command} ${args.join(" ")}`));
+    if (!this.silent) console.log(chalk.gray(`[CONNECT] ${command} ${args.join(" ")}`));
 
     this.process = spawn(command, args, {
       stdio: ["pipe", "pipe", "pipe"],
@@ -30,17 +33,15 @@ export class StdioTransport extends EventEmitter {
     });
 
     this.process.stderr.on("data", (data: Buffer) => {
-      // MCPサーバーのデバッグログをグレーで表示
+      if (this.silent) return;
       const lines = data.toString().trim().split("\n");
       for (const line of lines) {
-        if (line) {
-          console.log(chalk.gray(`[SERVER LOG] ${line}`));
-        }
+        if (line) console.log(chalk.gray(`[SERVER LOG] ${line}`));
       }
     });
 
     this.process.on("exit", (code) => {
-      console.log(chalk.yellow(`[DISCONNECT] process exited with code ${code}`));
+      if (!this.silent) console.log(chalk.yellow(`[DISCONNECT] process exited with code ${code}`));
       this.emit("disconnect");
     });
 
@@ -84,6 +85,7 @@ export class StdioTransport extends EventEmitter {
   }
 
   private logMessage(direction: "→" | "←", message: unknown): void {
+    if (this.silent) return;
     const json = JSON.stringify(message, null, this.verbose ? 2 : undefined);
     if (direction === "→") {
       console.log(chalk.cyan(`\n[SEND ${direction}] `) + chalk.white(json));
