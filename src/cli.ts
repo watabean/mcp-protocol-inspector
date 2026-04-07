@@ -3,10 +3,12 @@ import chalk from "chalk";
 import { McpTransport } from "./transport/types.js";
 import { initialize, type InitializeResult } from "./protocol/initialize.js";
 import { listTools, callTool, sendRaw, type Tool } from "./protocol/tools.js";
+import { buildTokenReport } from "./protocol/tokens.js";
 
 const HELP_TEXT = `
 ${chalk.bold("コマンド一覧:")}
   ${chalk.cyan("list tools")}              ツール一覧を取得
+  ${chalk.cyan("count tokens")}            ツール定義のトークン消費量を計測
   ${chalk.cyan("call <tool> [json]")}      ツールを呼び出す (例: call echo {"message":"hi"})
   ${chalk.cyan("raw <json>")}              生のJSON-RPCを送信 (例: raw {"jsonrpc":"2.0","id":99,"method":"tools/list"})
   ${chalk.cyan("help")}                    このヘルプを表示
@@ -77,6 +79,13 @@ async function handleCommand(input: string, transport: McpTransport): Promise<vo
   if (input === "list tools") {
     const tools = await listTools(transport);
     printTools(tools);
+    return;
+  }
+
+  if (input === "count tokens") {
+    const tools = await listTools(transport);
+    const report = buildTokenReport(tools);
+    printTokenReport(report);
     return;
   }
 
@@ -158,6 +167,19 @@ function printToolResult(result: {
       console.log(chalk.gray(JSON.stringify(item, null, 2)));
     }
   }
+  console.log();
+}
+
+function printTokenReport(report: { tools: Array<{ name: string; tokens: number }>; total: number }): void {
+  const maxNameLen = Math.max(...report.tools.map((t) => t.name.length));
+
+  console.log(chalk.bold(`\n  ツール定義のトークン消費:`));
+  for (const entry of report.tools) {
+    const name = entry.name.padEnd(maxNameLen);
+    const tokens = String(entry.tokens).padStart(6);
+    console.log(`  ${chalk.cyan("•")} ${chalk.bold(name)}  ${chalk.yellow(tokens)} tokens`);
+  }
+  console.log(`\n  ${"合計".padEnd(maxNameLen + 2)} ${chalk.yellow(String(report.total).padStart(6))} tokens (${report.tools.length}ツール)`);
   console.log();
 }
 
