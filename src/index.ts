@@ -6,6 +6,7 @@ import { initialize } from "./protocol/initialize.js";
 import { runCli } from "./cli.js";
 import { splitCommand } from "./util/shellwords.js";
 import { attachServerRequestHandler } from "./protocol/serverRequests.js";
+import { buildHttpHeaders } from "./auth/http.js";
 
 interface Args {
   mode: "stdio" | "sse" | "streamable";
@@ -40,6 +41,7 @@ function parseArgs(): Args {
   console.log(chalk.cyan('  npm run inspect -- --server "npx @modelcontextprotocol/server-filesystem /tmp"'));
   console.log(chalk.cyan("  npm run inspect -- --url http://localhost:3845          # SSE (Figmaなど)"));
   console.log(chalk.cyan("  npm run inspect -- --url http://localhost:3000 --streamable  # Streamable HTTP"));
+  console.log(chalk.cyan("  npm run inspect -- --url https://mcp.atlassian.com/v1/mcp --streamable  # Atlassian MCP"));
   process.exit(0);
 }
 
@@ -58,7 +60,8 @@ async function main(): Promise<void> {
     transport = t;
 
   } else if (args.mode === "sse") {
-    const t = new SseTransport({ verbose: true });
+    const headers = await buildHttpHeaders(args.url!);
+    const t = new SseTransport({ verbose: true, headers });
     t.on("error", (err: Error) => {
       console.error(chalk.red(`[FATAL] ${err.message}`));
       process.exit(1);
@@ -67,7 +70,8 @@ async function main(): Promise<void> {
     transport = t;
 
   } else {
-    const t = new StreamableHttpTransport(args.url!, { verbose: true });
+    const headers = await buildHttpHeaders(args.url!);
+    const t = new StreamableHttpTransport(args.url!, { verbose: true, headers });
     await t.connect();
     transport = t;
   }

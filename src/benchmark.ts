@@ -1,12 +1,13 @@
 import chalk from "chalk";
 import { StdioTransport } from "./transport/stdio.js";
-import { SseTransport } from "./transport/http.js";
+import { SseTransport, StreamableHttpTransport } from "./transport/http.js";
 import { McpTransport } from "./transport/types.js";
 import { initialize } from "./protocol/initialize.js";
 import { listTools } from "./protocol/tools.js";
 import { buildTokenReport } from "./protocol/tokens.js";
 import { splitCommand } from "./util/shellwords.js";
 import { attachServerRequestHandler } from "./protocol/serverRequests.js";
+import { buildHttpHeaders } from "./auth/http.js";
 
 // Anthropic 料金表 (input tokens, USD / 1M tokens)
 // 2026-04-07 時点の https://www.anthropic.com/pricing を基準にしている。
@@ -17,7 +18,7 @@ const MODELS = [
 ];
 
 interface ServerSpec {
-  type: "stdio" | "sse";
+  type: "stdio" | "sse" | "streamable";
   value: string; // コマンド文字列 or URL
 }
 
@@ -35,12 +36,13 @@ interface BenchmarkResult {
 function parseArgs(): ServerSpec[] {
   const argv = process.argv.slice(2);
   const specs: ServerSpec[] = [];
+  const streamable = argv.includes("--streamable");
 
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--server" && argv[i + 1]) {
       specs.push({ type: "stdio", value: argv[++i] });
     } else if (argv[i] === "--url" && argv[i + 1]) {
-      specs.push({ type: "sse", value: argv[++i] });
+      specs.push({ type: streamable ? "streamable" : "sse", value: argv[++i] });
     }
   }
 
@@ -49,6 +51,7 @@ function parseArgs(): ServerSpec[] {
     console.log(chalk.gray("\n使い方:"));
     console.log(chalk.cyan('  npm run benchmark -- --server "npx @modelcontextprotocol/server-filesystem /tmp"'));
     console.log(chalk.cyan("  npm run benchmark -- --url http://localhost:3845"));
+    console.log(chalk.cyan("  npm run benchmark -- --url https://mcp.atlassian.com/v1/mcp --streamable"));
     console.log(chalk.cyan('  npm run benchmark -- --server "cmd1" --url http://localhost:3845 --server "cmd2"'));
     process.exit(0);
   }
@@ -69,9 +72,15 @@ async function measureServer(spec: ServerSpec): Promise<BenchmarkResult> {
       const t = new StdioTransport({ verbose: false, silent: true });
       t.connect(parts[0], parts.slice(1));
       transport = t;
-    } else {
-      const t = new SseTransport({ verbose: false, silent: true });
+    } else if (spec.type === "sse") {
+      const headers = await buildHttpHeaders(spec.value);
+      const t = new SseTransport({ verbose: false, silent: true, headers });
       await t.connect(spec.value);
+      transport = t;
+    } else {
+      const headers = await buildHttpHeaders(spec.value);
+      const t = new StreamableHttpTransport(spec.value, { verbose: false, silent: true, headers });
+      await t.connect();
       transport = t;
     }
 
@@ -173,7 +182,7 @@ async function main(): Promise<void> {
 
   const results: BenchmarkResult[] = [];
   for (const spec of specs) {
-    const label = spec.type === "stdio" ? spec.value.split(" ")[0] : spec.value;
+    const label = spec.type === "stdio" ? splitCommand(spec.value)[0] : spec.value;
     process.stdout.write(chalk.gray(`  measuring ${label} ... `));
     const result = await measureServer(spec);
     process.stdout.write(

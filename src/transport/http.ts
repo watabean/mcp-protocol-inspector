@@ -4,6 +4,7 @@ import chalk from "chalk";
 export interface TransportOptions {
   verbose: boolean;
   silent?: boolean;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -25,22 +26,24 @@ export class SseTransport extends EventEmitter {
   private verbose: boolean;
   private silent: boolean;
   private baseUrl: string = "";
+  private headers: Record<string, string>;
 
   constructor(options: TransportOptions = { verbose: true }) {
     super();
     this.verbose = options.verbose;
     this.silent = options.silent ?? false;
+    this.headers = options.headers ?? {};
   }
 
   async connect(baseUrl: string): Promise<void> {
     this.baseUrl = baseUrl;
-    const sseUrl = new URL("/sse", baseUrl).toString();
+    const sseUrl = this.buildSseUrl(baseUrl);
     if (!this.silent) console.log(chalk.gray(`[CONNECT] SSE ${sseUrl}`));
 
     this.abortController = new AbortController();
 
     const response = await fetch(sseUrl, {
-      headers: { Accept: "text/event-stream" },
+      headers: { Accept: "text/event-stream", ...this.headers },
       signal: this.abortController.signal,
     });
 
@@ -142,7 +145,7 @@ export class SseTransport extends EventEmitter {
 
     fetch(this.postUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...this.headers },
       body: JSON.stringify(message),
     }).then((res) => {
       if (!res.ok) {
@@ -151,6 +154,14 @@ export class SseTransport extends EventEmitter {
     }).catch((err: Error) => {
       console.error(chalk.red(`[POST ERROR] ${err.message}`));
     });
+  }
+
+  private buildSseUrl(baseUrl: string): string {
+    const url = new URL(baseUrl);
+    if (!url.pathname.endsWith("/sse")) {
+      url.pathname = `${url.pathname.replace(/\/$/, "")}/sse`;
+    }
+    return url.toString();
   }
 
   private logMessage(direction: "→" | "←", message: unknown): void {
@@ -191,28 +202,30 @@ export class StreamableHttpTransport extends EventEmitter {
   private sessionId: string | null = null;
   private verbose: boolean;
   private silent: boolean;
+  private headers: Record<string, string>;
 
   constructor(baseUrl: string, options: TransportOptions = { verbose: true }) {
     super();
-    this.baseUrl = baseUrl.replace(/\/$/, "");
+    this.baseUrl = this.normalizeEndpoint(baseUrl);
     this.verbose = options.verbose;
     this.silent = options.silent ?? false;
+    this.headers = options.headers ?? {};
   }
 
   async connect(): Promise<void> {
-    const url = `${this.baseUrl}/mcp`;
-    if (!this.silent) console.log(chalk.gray(`[CONNECT] Streamable HTTP ${url}`));
+    if (!this.silent) console.log(chalk.gray(`[CONNECT] Streamable HTTP ${this.baseUrl}`));
     // Streamable HTTP は単一 endpoint を使う。
     // セッションは initialize のレスポンスヘッダーで始まることがある。
   }
 
   async send(message: unknown): Promise<void> {
-    const url = `${this.baseUrl}/mcp`;
+    const url = this.baseUrl;
     this.logMessage("→", message);
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "Accept": "application/json, text/event-stream",
+      ...this.headers,
     };
     if (this.sessionId) {
       headers["Mcp-Session-Id"] = this.sessionId;
@@ -243,6 +256,14 @@ export class StreamableHttpTransport extends EventEmitter {
     } else {
       console.error(chalk.red(`[ERROR] 予期しないレスポンス: ${response.status} ${contentType}`));
     }
+  }
+
+  private normalizeEndpoint(baseUrl: string): string {
+    const url = new URL(baseUrl);
+    if (!url.pathname.endsWith("/mcp")) {
+      url.pathname = `${url.pathname.replace(/\/$/, "")}/mcp`;
+    }
+    return url.toString();
   }
 
   private async readSseResponse(body: ReadableStream<Uint8Array>): Promise<void> {
