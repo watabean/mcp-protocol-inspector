@@ -6,6 +6,7 @@ import { initialize } from "./protocol/initialize.js";
 import { listTools } from "./protocol/tools.js";
 import { buildTokenReport } from "./protocol/tokens.js";
 import { splitCommand } from "./util/shellwords.js";
+import { attachServerRequestHandler } from "./protocol/serverRequests.js";
 
 // Anthropic 料金表 (input tokens, USD / 1M tokens)
 // 2026-04-07 時点の https://www.anthropic.com/pricing を基準にしている。
@@ -74,9 +75,21 @@ async function measureServer(spec: ServerSpec): Promise<BenchmarkResult> {
       transport = t;
     }
 
+    let unhandledMethod: string | null = null;
+    attachServerRequestHandler(transport, {
+      rootPaths: ["/tmp"],
+      onUnhandledRequest: (method) => {
+        unhandledMethod = method;
+      },
+    });
+
     const serverInfo = await initialize(transport);
     const tools = await listTools(transport);
     const report = buildTokenReport(tools);
+
+    if (unhandledMethod) {
+      throw new Error(`unsupported server request during benchmark: ${unhandledMethod}`);
+    }
 
     return {
       serverName: serverInfo.serverInfo.name,

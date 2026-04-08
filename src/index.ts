@@ -5,6 +5,7 @@ import { McpTransport } from "./transport/types.js";
 import { initialize } from "./protocol/initialize.js";
 import { runCli } from "./cli.js";
 import { splitCommand } from "./util/shellwords.js";
+import { attachServerRequestHandler } from "./protocol/serverRequests.js";
 
 interface Args {
   mode: "stdio" | "sse" | "streamable";
@@ -72,6 +73,12 @@ async function main(): Promise<void> {
   }
 
   try {
+    attachServerRequestHandler(transport, {
+      rootPaths: [process.cwd()],
+      onUnhandledRequest: (method) => {
+        console.error(chalk.yellow(`[WARN] Unsupported server request: ${method}`));
+      },
+    });
     const serverInfo = await initialize(transport);
     await runCli(transport, serverInfo);
   } catch (err) {
