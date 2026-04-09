@@ -1,3 +1,4 @@
+import "dotenv/config";
 import chalk from "chalk";
 import { StdioTransport } from "./transport/stdio.js";
 import { SseTransport, StreamableHttpTransport } from "./transport/http.js";
