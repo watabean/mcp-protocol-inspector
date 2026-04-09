@@ -1,12 +1,10 @@
-import { getAtlassianAuthorizationHeader } from "./atlassian.js";
+import { getOAuthAuthorizationHeader } from "./oauth.js";
+import { atlassianOAuthProvider } from "./providers/atlassian.js";
 
 export async function buildHttpHeaders(url: string): Promise<Record<string, string>> {
-  const parsed = new URL(url);
-
-  if (parsed.hostname === "mcp.atlassian.com") {
-    return {
-      Authorization: await getAtlassianAuthorizationHeader(url),
-    };
+  const authorization = await getOAuthAuthorizationHeader(url, [atlassianOAuthProvider]);
+  if (authorization) {
+    return { Authorization: authorization };
   }
 
   return {};
