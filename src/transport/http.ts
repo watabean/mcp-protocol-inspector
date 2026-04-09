@@ -10,7 +10,7 @@ export interface TransportOptions {
 /**
  * SSE Transport (旧仕様 2024-11-05)
  *
- * 仕様: https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse
+ * 仕様: https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#http-with-sse
  *
  * 接続フロー:
  * 1. GET /sse → SSE ストリーム確立
@@ -183,7 +183,7 @@ export class SseTransport extends EventEmitter {
 /**
  * Streamable HTTP Transport (新仕様 2025-03-26)
  *
- * 仕様: https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/transports/#streamable-http
+ * 仕様: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http
  *
  * 旧SSEとの主な違い:
  * - コネクション1本で双方向通信 (旧SSEは受信用GET + 送信用POSTの2本)

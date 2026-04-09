@@ -106,7 +106,7 @@ HTTP トランスポートは、現時点では旧仕様と新仕様が混在し
 
 ### 旧仕様（2024-11-05）: SSE Transport
 
-- [仕様](https://spec.modelcontextprotocol.io/specification/2024-11-05/basic/transports/#http-with-sse)
+- [仕様](https://modelcontextprotocol.io/specification/2024-11-05/basic/transports#http-with-sse)
 - **2 本のコネクション**を使います
 - `GET /sse` で受信用の SSE ストリームを確立します
 - `POST /message` でメッセージを送信します
@@ -115,7 +115,7 @@ HTTP トランスポートは、現時点では旧仕様と新仕様が混在し
 
 ### 新仕様（2025-03-26）: Streamable HTTP
 
-- [仕様](https://spec.modelcontextprotocol.io/specification/2025-03-26/basic/transports/#streamable-http)
+- [仕様](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#streamable-http)
 - 単一の MCP endpoint を中心に扱う設計です
 - `POST /mcp` で JSON-RPC メッセージを送信します
 - レスポンスは `Content-Type` に応じて変わります
